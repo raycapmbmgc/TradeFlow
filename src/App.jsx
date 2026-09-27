@@ -17,28 +17,10 @@ function App() {
   return (
     <TradeProvider>
       <BrowserRouter>
-
         <Routes>
-
-          {/* PÁGINAS PÚBLICAS */}
-
-          <Route
-            path="/"
-            element={<Home />}
-          />
-
-          <Route
-            path="/login"
-            element={<Login />}
-          />
-
-          <Route
-            path="/cadastro"
-            element={<Cadastro />}
-          />
-
-
-          {/* PÁGINAS DA PLATAFORMA */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />} />
 
           <Route
             path="/inicio"
@@ -86,16 +68,14 @@ function App() {
           />
 
           <Route
-           path="/extrato"
-           element={
-            <ProtectedRoute>
-           <Extrato />
-           </ProtectedRoute>
-          }
-        />
-
+            path="/extrato"
+            element={
+              <ProtectedRoute>
+                <Extrato />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-
       </BrowserRouter>
     </TradeProvider>
   )

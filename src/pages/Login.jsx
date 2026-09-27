@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import './Login.css'
+import { api, salvarSessao } from '../api'
 
 function Login() {
-
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mensagem, setMensagem] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
-  function entrar(event) {
-
+  async function entrar(event) {
     event.preventDefault()
 
     if (!email || !senha) {
@@ -17,45 +17,24 @@ function Login() {
       return
     }
 
-    const usuariosSalvos = JSON.parse(
-      localStorage.getItem('usuariosTradeFlow')
-    ) || []
+    setEnviando(true)
+    setMensagem('')
 
-    if (usuariosSalvos.length === 0) {
-      setMensagem(
-        'Nenhuma conta cadastrada. Cadastre-se primeiro.'
-      )
-      return
+    try {
+      const { token, usuario } = await api.login(email, senha)
+
+      salvarSessao(token, usuario || { email })
+
+      window.location.href = '/inicio'
+    } catch (error) {
+      setMensagem(error.message)
+      setEnviando(false)
     }
-
-    const usuarioEncontrado = usuariosSalvos.find(
-      (usuario) =>
-        usuario.email.toLowerCase() === email.toLowerCase() &&
-        usuario.senha === senha
-    )
-
-    if (!usuarioEncontrado) {
-      setMensagem('E-mail ou senha incorretos.')
-      return
-    }
-
-    localStorage.setItem(
-      'usuarioLogado',
-      JSON.stringify({
-        id: usuarioEncontrado.id,
-        nome: usuarioEncontrado.nome,
-        email: usuarioEncontrado.email
-      })
-    )
-
-    window.location.href = '/inicio'
   }
 
   return (
     <div className="login-page">
-
       <div className="login-card">
-
         <h1>
           Trade<span>Flow</span>
         </h1>
@@ -65,7 +44,6 @@ function Login() {
         </p>
 
         <form onSubmit={entrar}>
-
           <label>
             E-mail
           </label>
@@ -94,10 +72,9 @@ function Login() {
             </p>
           )}
 
-          <button type="submit">
-            Entrar
+          <button type="submit" disabled={enviando}>
+            {enviando ? 'Entrando...' : 'Entrar'}
           </button>
-
         </form>
 
         <p className="register-link">
@@ -114,9 +91,7 @@ function Login() {
         >
           Voltar para o início
         </Link>
-
       </div>
-
     </div>
   )
 }

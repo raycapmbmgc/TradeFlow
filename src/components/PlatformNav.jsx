@@ -1,18 +1,15 @@
 import { Link } from 'react-router-dom'
 import './PlatformNav.css'
+import { encerrarSessao } from '../api'
 
 function PlatformNav() {
-
   function sair() {
-
-    localStorage.removeItem('usuarioLogado')
-
+    encerrarSessao()
     window.location.href = '/login'
   }
 
   return (
     <nav className="platform-nav">
-
       <Link to="/inicio">
         Início
       </Link>
@@ -43,7 +40,6 @@ function PlatformNav() {
       >
         Sair
       </button>
-
     </nav>
   )
 }

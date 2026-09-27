@@ -4,36 +4,26 @@ import PlatformNav from '../components/PlatformNav'
 import { useTrade } from '../context/TradeContext'
 
 function Ordens() {
-
   const { ordens } = useTrade()
 
   return (
     <div className="orders-page">
-
       <header className="orders-header">
+        <div className="orders-brand">
+          <h1>
+            Trade<span>Flow</span>
+          </h1>
+        </div>
 
-  <div className="orders-brand">
-
-    <h1>
-      Trade<span>Flow</span>
-    </h1>
-
-  </div>
-
-  <PlatformNav />
-
-</header>
+        <PlatformNav />
+      </header>
 
       <main className="orders-content">
-
         <section className="orders-section">
-
           <h2>Minhas ordens</h2>
 
           {ordens.length === 0 ? (
-
             <div className="empty-orders">
-
               <h3>Nenhuma ordem realizada</h3>
 
               <p>
@@ -46,76 +36,59 @@ function Ordens() {
               >
                 Começar a negociar
               </Link>
-
             </div>
-
           ) : (
-
             <div className="orders-table">
-
               <div className="orders-table-header">
+                <span>Ativo</span>
+                <span>Tipo</span>
+                <span>Quantidade</span>
+                <span>Valor</span>
+                <span>Data</span>
+                <span>Hora</span>
+              </div>
 
-  <span>Ativo</span>
-  <span>Tipo</span>
-  <span>Quantidade</span>
-  <span>Valor</span>
-  <span>Data</span>
-  <span>Hora</span>
+              {ordens.map((ordem) => {
+                const dataOrdem = new Date(ordem.data)
 
-</div>
+                return (
+                  <div
+                    className="orders-table-row"
+                    key={ordem.id}
+                  >
+                    <strong>
+                      {ordem.ativo}
+                    </strong>
 
-             {ordens.map((ordem) => {
+                    <span>
+                      {ordem.tipo}
+                    </span>
 
-  const dataOrdem = new Date(ordem.data)
+                    <span>
+                      {ordem.quantidade}
+                    </span>
 
-  return (
-    <div
-      className="orders-table-row"
-      key={ordem.id}
-    >
+                    <strong>
+                      R$ {ordem.total.toFixed(2).replace('.', ',')}
+                    </strong>
 
-      <strong>
-        {ordem.ativo}
-      </strong>
+                    <span>
+                      {dataOrdem.toLocaleDateString('pt-BR')}
+                    </span>
 
-      <span>
-        {ordem.tipo}
-      </span>
-
-      <span>
-        {ordem.quantidade}
-      </span>
-
-      <strong>
-        R$ {ordem.total
-          .toFixed(2)
-          .replace('.', ',')}
-      </strong>
-
-      <span>
-        {dataOrdem.toLocaleDateString('pt-BR')}
-      </span>
-
-      <span>
-        {dataOrdem.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        })}
-      </span>
-
-    </div>
-  )
-})}
-
-
+                    <span>
+                      {dataOrdem.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
-
           )}
-
         </section>
-
       </main>
-
     </div>
   )
 }

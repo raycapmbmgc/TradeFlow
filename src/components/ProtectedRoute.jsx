@@ -1,12 +1,8 @@
 import { Navigate } from 'react-router-dom'
+import { obterToken } from '../api'
 
 function ProtectedRoute({ children }) {
-
-  const usuarioLogado = JSON.parse(
-    localStorage.getItem('usuarioLogado')
-  )
-
-  if (!usuarioLogado) {
+  if (!obterToken()) {
     return <Navigate to="/login" replace />
   }
 

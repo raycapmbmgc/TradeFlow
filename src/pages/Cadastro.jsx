@@ -1,22 +1,23 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import './Cadastro.css'
+import { api } from '../api'
 
 function Cadastro() {
-
   const navigate = useNavigate()
 
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
+  const [cpf, setCpf] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [mensagem, setMensagem] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
-  function cadastrar(event) {
-
+  async function cadastrar(event) {
     event.preventDefault()
 
-    if (!nome || !email || !senha || !confirmarSenha) {
+    if (!nome || !email || !cpf || !senha || !confirmarSenha) {
       setMensagem('Preencha todos os campos.')
       return
     }
@@ -26,49 +27,26 @@ function Cadastro() {
       return
     }
 
-    const usuariosSalvos = JSON.parse(
-      localStorage.getItem('usuariosTradeFlow')
-    ) || []
+    setEnviando(true)
+    setMensagem('')
 
-    const emailJaExiste = usuariosSalvos.some(
-      (usuario) =>
-        usuario.email.toLowerCase() === email.toLowerCase()
-    )
+    try {
+      await api.cadastrar(nome, email, cpf.trim(), senha)
 
-    if (emailJaExiste) {
-      setMensagem('Este e-mail já está cadastrado.')
-      return
+      setMensagem('Cadastro realizado com sucesso!')
+
+      setTimeout(() => {
+        navigate('/login')
+      }, 1000)
+    } catch (error) {
+      setMensagem(error.message)
+      setEnviando(false)
     }
-
-    const novoUsuario = {
-      id: Date.now(),
-      nome,
-      email,
-      senha
-    }
-
-    const novosUsuarios = [
-      ...usuariosSalvos,
-      novoUsuario
-    ]
-
-    localStorage.setItem(
-      'usuariosTradeFlow',
-      JSON.stringify(novosUsuarios)
-    )
-
-    setMensagem('Cadastro realizado com sucesso!')
-
-    setTimeout(() => {
-      navigate('/login')
-    }, 1000)
   }
 
   return (
     <div className="register-page">
-
       <div className="register-card">
-
         <h1>
           Trade<span>Flow</span>
         </h1>
@@ -78,7 +56,6 @@ function Cadastro() {
         </p>
 
         <form onSubmit={cadastrar}>
-
           <label>
             Nome
           </label>
@@ -99,6 +76,18 @@ function Cadastro() {
             placeholder="Digite seu e-mail"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+          />
+
+          <label>
+            CPF
+          </label>
+
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Digite seu CPF"
+            value={cpf}
+            onChange={(event) => setCpf(event.target.value)}
           />
 
           <label>
@@ -129,10 +118,9 @@ function Cadastro() {
             </p>
           )}
 
-          <button type="submit">
-            Criar conta
+          <button type="submit" disabled={enviando}>
+            {enviando ? 'Criando conta...' : 'Criar conta'}
           </button>
-
         </form>
 
         <p className="login-link">
@@ -149,9 +137,7 @@ function Cadastro() {
         >
           Voltar para o início
         </Link>
-
       </div>
-
     </div>
   )
 }

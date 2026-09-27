@@ -1,126 +1,103 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState
 } from 'react'
 
+import { api, obterToken } from '../api'
+
 const TradeContext = createContext()
 
-function obterUsuarioLogado() {
-
-  const usuario = JSON.parse(
-    localStorage.getItem('usuarioLogado')
-  )
-
-  return usuario
-}
-
-function obterDadosUsuario(usuarioId) {
-
-  const dadosSalvos = JSON.parse(
-    localStorage.getItem('dadosTradeFlow')
-  ) || {}
-
-  return dadosSalvos[usuarioId] || {
-    saldo: 0,
-    carteira: {},
-    ordens: [],
-    extrato: [],
-    historicoAtivos: ['PETR4']
-  }
-}
-
 export function TradeProvider({ children }) {
+  const [ativos, setAtivos] = useState({})
+  const [carteira, setCarteira] = useState({})
+  const [ordens, setOrdens] = useState([])
+  const [extrato, setExtrato] = useState([])
 
-  const usuarioLogado = obterUsuarioLogado()
+  const [carregando, setCarregando] = useState(false)
+  const [erro, setErro] = useState('')
 
-  const usuarioId = usuarioLogado
-    ? usuarioLogado.id
-    : null
+  const [historicoAtivos, setHistoricoAtivos] = useState(['PETR4'])
 
-  const dadosIniciais = usuarioId
-    ? obterDadosUsuario(usuarioId)
-    : {
-        saldo: 0,
-        carteira: {},
-        ordens: [],
-        extrato: [],
-        historicoAtivos: ['PETR4']
-      }
-
-  const [saldo, setSaldo] = useState(
-    dadosIniciais.saldo
-  )
-
-  const [carteira, setCarteira] = useState(
-    dadosIniciais.carteira
-  )
-
-  const [ordens, setOrdens] = useState(
-    dadosIniciais.ordens
-  )
-
-  const [extrato, setExtrato] = useState(
-    dadosIniciais.extrato
-  )
-
-  const [historicoAtivos, setHistoricoAtivos] =
-    useState(dadosIniciais.historicoAtivos)
-
-
-  // =========================
-  // SALVAR DADOS DO USUÁRIO
-  // =========================
-
-  useEffect(() => {
-
-    if (!usuarioId) {
+  const carregarDados = useCallback(async () => {
+    if (!obterToken()) {
       return
     }
 
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem('dadosTradeFlow')
-    ) || {}
+    setCarregando(true)
+    setErro('')
 
-    dadosSalvos[usuarioId] = {
-      saldo,
-      carteira,
-      ordens,
-      extrato,
-      historicoAtivos
+    const [
+      resultadoAtivos,
+      resultadoCarteira,
+      resultadoOrdens,
+      resultadoExtrato
+    ] = await Promise.allSettled([
+      api.listarAtivos(),
+      api.buscarCarteira(),
+      api.listarOrdens(),
+      api.listarExtrato()
+    ])
+
+    if (resultadoAtivos.status === 'fulfilled') {
+      const listaAtivos = resultadoAtivos.value
+      const primeiroAtivo = Object.keys(listaAtivos)[0]
+
+      setAtivos(listaAtivos)
+
+      if (primeiroAtivo) {
+        setHistoricoAtivos((atual) =>
+          listaAtivos[atual[0]] ? atual : [primeiroAtivo]
+        )
+      }
+    } else {
+      setErro(resultadoAtivos.reason.message)
     }
 
-    localStorage.setItem(
-      'dadosTradeFlow',
-      JSON.stringify(dadosSalvos)
-    )
+    if (resultadoCarteira.status === 'fulfilled') {
+      setCarteira(resultadoCarteira.value)
+    } else {
+      console.warn('Carteira:', resultadoCarteira.reason.message)
+    }
 
-  }, [
-    usuarioId,
-    saldo,
-    carteira,
-    ordens,
-    extrato,
-    historicoAtivos
-  ])
+    if (resultadoOrdens.status === 'fulfilled') {
+      setOrdens(resultadoOrdens.value)
+    } else {
+      console.warn('Ordens:', resultadoOrdens.reason.message)
+    }
 
+    if (resultadoExtrato.status === 'fulfilled') {
+      setExtrato(resultadoExtrato.value)
+    } else {
+      console.warn('Extrato:', resultadoExtrato.reason.message)
+    }
+
+    setCarregando(false)
+  }, [])
+
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
+
+  async function enviarOrdem(ativo, tipo, quantidade, preco) {
+    const resposta = await api.enviarOrdem(ativo, tipo, quantidade, preco)
+    await carregarDados()
+    return resposta
+  }
 
   return (
     <TradeContext.Provider
       value={{
-        saldo,
-        setSaldo,
-
+        ativos,
         carteira,
-        setCarteira,
-
         ordens,
-        setOrdens,
-
         extrato,
-        setExtrato,
-
+        carregando,
+        erro,
+        carregarDados,
+        enviarOrdem,
         historicoAtivos,
         setHistoricoAtivos
       }}
