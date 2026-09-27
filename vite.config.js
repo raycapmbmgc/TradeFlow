@@ -27,6 +27,9 @@ export default defineConfig(({ mode }) => {
   const urlDoBack = (env.VITE_API_URL || URL_PADRAO).replace(/\/+$/, '')
 
   return {
-    plugins: [react(), statusDoBack(urlDoBack)]
+    plugins: [react(), statusDoBack(urlDoBack)],
+    preview: {
+      allowedHosts: true
+    }
   }
 })
