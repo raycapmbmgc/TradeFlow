@@ -4,7 +4,17 @@ import PlatformNav from '../components/PlatformNav'
 import { useTrade } from '../context/TradeContext'
 
 function Ordens() {
-  const { ordens } = useTrade()
+  // Puxando ordensAbertas e executarFila do Context
+  const { ordensAbertas, executarFila } = useTrade()
+
+  const handleExecute = async () => {
+    try {
+      await executarFila()
+      alert('Fila de ordens executada com sucesso!')
+    } catch (error) {
+      alert('Erro ao executar a fila: ' + error.message)
+    }
+  }
 
   return (
     <div className="orders-page">
@@ -20,20 +30,27 @@ function Ordens() {
 
       <main className="orders-content">
         <section className="orders-section">
-          <h2>Minhas ordens</h2>
+          
+          {/* Header da Seção com o Botão Execute */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2 style={{ margin: 0 }}>Minhas ordens (OPEN)</h2>
+            <button 
+              className="trade-button" 
+              onClick={handleExecute}
+              style={{ border: 'none', cursor: 'pointer' }}
+              disabled={ordensAbertas.length === 0}
+            >
+              Execute
+            </button>
+          </div>
 
-          {ordens.length === 0 ? (
+          {ordensAbertas.length === 0 ? (
             <div className="empty-orders">
-              <h3>Nenhuma ordem realizada</h3>
+              <h3>Nenhuma ordem aberta na fila</h3>
 
-              <p>
-                Suas compras e vendas aparecerão aqui.
-              </p>
+              <p>Suas novas ordens de compra e venda aparecerão aqui aguardando execução.</p>
 
-              <Link
-                to="/trading"
-                className="start-trading-button"
-              >
+              <Link to="/trading" className="start-trading-button">
                 Começar a negociar
               </Link>
             </div>
@@ -41,41 +58,24 @@ function Ordens() {
             <div className="orders-table">
               <div className="orders-table-header">
                 <span>Ativo</span>
-                <span>Tipo</span>
+                <span>STATUS</span>
                 <span>Quantidade</span>
                 <span>Valor</span>
                 <span>Data</span>
                 <span>Hora</span>
               </div>
 
-              {ordens.map((ordem) => {
+              {/* Trocado 'ordens' por 'ordensAbertas' */}
+              {ordensAbertas.map((ordem) => {
                 const dataOrdem = new Date(ordem.data)
 
                 return (
-                  <div
-                    className="orders-table-row"
-                    key={ordem.id}
-                  >
-                    <strong>
-                      {ordem.ativo}
-                    </strong>
-
-                    <span>
-                      {ordem.tipo}
-                    </span>
-
-                    <span>
-                      {ordem.quantidade}
-                    </span>
-
-                    <strong>
-                      R$ {ordem.total.toFixed(2).replace('.', ',')}
-                    </strong>
-
-                    <span>
-                      {dataOrdem.toLocaleDateString('pt-BR')}
-                    </span>
-
+                  <div className="orders-table-row" key={ordem.id}>
+                    <strong>{ordem.ativo}</strong>
+                    <span>{ordem.status}</span>
+                    <span>{ordem.quantidade}</span>
+                    <strong>R$ {ordem.total.toFixed(2).replace('.', ',')}</strong>
+                    <span>{dataOrdem.toLocaleDateString('pt-BR')}</span>
                     <span>
                       {dataOrdem.toLocaleTimeString('pt-BR', {
                         hour: '2-digit',

@@ -7,6 +7,7 @@ export const ROTAS = {
   carteira: '/api/wallets/portfolio',
   criarCarteira: '/api/wallets',
   ordens: '/api/orders',
+  fila: '/api/orders/queue',
   executarFila: '/api/orders/execute-queue',
   extrato: '/api/transactions'
 }
@@ -536,6 +537,11 @@ export const api = {
         !ordem.usuarioId ||
         ordem.usuarioId === usuarioId
     )
+  },
+
+  async listarFila(){
+    const ordensQueue = (await requisicao(ROTAS.fila)) || []
+    return ordensQueue.map(adaptarOrdem)
   },
 
   async listarExtrato() {

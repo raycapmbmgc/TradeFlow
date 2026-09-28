@@ -26,6 +26,8 @@ export function TradeProvider({
   const [ordens, setOrdens] =
     useState([])
 
+  const [ordensAbertas, setOrdensAbertas] = useState([])
+
   const [extrato, setExtrato] =
     useState([])
 
@@ -39,6 +41,8 @@ export function TradeProvider({
     historicoAtivos,
     setHistoricoAtivos
   ] = useState(['PETR4'])
+
+  
 
   const carregarDados =
     useCallback(async () => {
@@ -54,13 +58,21 @@ export function TradeProvider({
           resultadoAtivos,
           resultadoCarteira,
           resultadoOrdens,
-          resultadoExtrato
+          resultadoExtrato,
+          resultadoFila
         ] = await Promise.allSettled([
           api.listarAtivos(),
           api.buscarCarteira(),
           api.listarOrdens(),
-          api.listarExtrato()
+          api.listarExtrato(),
+          api.listarFila()
         ])
+
+        if (resultadoFila.status === 'fulfilled') {
+          setOrdensAbertas(resultadoFila.value)
+        } else {
+          console.warn('Fila:', resultadoFila.reason?.message)
+        }
 
         if (
           resultadoAtivos.status ===
@@ -231,20 +243,6 @@ export function TradeProvider({
    * Isso permite visualizar
    * a fila em ordem FIFO.
    */
-  const ordensAbertas =
-    [...ordens]
-      .filter(
-        (ordem) =>
-          String(
-            ordem.status || ''
-          ).toLowerCase() ===
-          'aberta'
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.data) -
-          new Date(b.data)
-      )
 
   /*
    * Histórico de ordens executadas.
