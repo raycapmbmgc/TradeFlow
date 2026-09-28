@@ -6,126 +6,212 @@ import {
   useState
 } from 'react'
 
-import { api, obterToken } from '../api'
+import {
+  api,
+  obterToken
+} from '../api'
 
-const TradeContext = createContext()
+const TradeContext =
+  createContext()
 
-export function TradeProvider({ children }) {
-  const [ativos, setAtivos] = useState({})
-  const [carteira, setCarteira] = useState({})
-  const [ordens, setOrdens] = useState([])
-  const [extrato, setExtrato] = useState([])
+export function TradeProvider({
+  children
+}) {
+  const [ativos, setAtivos] =
+    useState({})
 
-  const [carregando, setCarregando] = useState(false)
-  const [erro, setErro] = useState('')
+  const [carteira, setCarteira] =
+    useState({})
 
-  const [historicoAtivos, setHistoricoAtivos] =
-    useState(['PETR4'])
+  const [ordens, setOrdens] =
+    useState([])
 
-  const carregarDados = useCallback(async () => {
-    if (!obterToken()) {
-      return
-    }
+  const [extrato, setExtrato] =
+    useState([])
 
-    setCarregando(true)
-    setErro('')
+  const [carregando, setCarregando] =
+    useState(false)
 
-    const [
-      resultadoAtivos,
-      resultadoCarteira,
-      resultadoOrdens,
-      resultadoExtrato
-    ] = await Promise.allSettled([
-      api.listarAtivos(),
-      api.buscarCarteira(),
-      api.listarOrdens(),
-      api.listarExtrato()
-    ])
+  const [erro, setErro] =
+    useState('')
 
-    if (resultadoAtivos.status === 'fulfilled') {
-      const listaAtivos = resultadoAtivos.value
+  const [
+    historicoAtivos,
+    setHistoricoAtivos
+  ] = useState(['PETR4'])
 
-      const primeiroAtivo =
-        Object.keys(listaAtivos)[0]
-
-      setAtivos(listaAtivos)
-
-      if (primeiroAtivo) {
-        setHistoricoAtivos((atual) =>
-          listaAtivos[atual[0]]
-            ? atual
-            : [primeiroAtivo]
-        )
+  const carregarDados =
+    useCallback(async () => {
+      if (!obterToken()) {
+        return
       }
-    } else {
-      setErro(
-        resultadoAtivos.reason?.message ||
-          'Não foi possível carregar os ativos.'
-      )
-    }
 
-    if (resultadoCarteira.status === 'fulfilled') {
-      setCarteira(resultadoCarteira.value)
-    } else {
-      console.warn(
-        'Carteira:',
-        resultadoCarteira.reason?.message
-      )
-    }
+      setCarregando(true)
+      setErro('')
 
-    if (resultadoOrdens.status === 'fulfilled') {
-      setOrdens(resultadoOrdens.value)
-    } else {
-      console.warn(
-        'Ordens:',
-        resultadoOrdens.reason?.message
-      )
-    }
+      try {
+        const [
+          resultadoAtivos,
+          resultadoCarteira,
+          resultadoOrdens,
+          resultadoExtrato
+        ] = await Promise.allSettled([
+          api.listarAtivos(),
+          api.buscarCarteira(),
+          api.listarOrdens(),
+          api.listarExtrato()
+        ])
 
-    if (resultadoExtrato.status === 'fulfilled') {
-      setExtrato(resultadoExtrato.value)
-    } else {
-      console.warn(
-        'Extrato:',
-        resultadoExtrato.reason?.message
-      )
-    }
+        if (
+          resultadoAtivos.status ===
+          'fulfilled'
+        ) {
+          const listaAtivos =
+            resultadoAtivos.value
 
-    setCarregando(false)
-  }, [])
+          const primeiroAtivo =
+            Object.keys(
+              listaAtivos
+            )[0]
+
+          setAtivos(
+            listaAtivos
+          )
+
+          if (primeiroAtivo) {
+            setHistoricoAtivos(
+              (atual) =>
+                listaAtivos[
+                  atual[0]
+                ]
+                  ? atual
+                  : [primeiroAtivo]
+            )
+          }
+        } else {
+          setErro(
+            resultadoAtivos
+              .reason?.message ||
+              'Não foi possível carregar os ativos.'
+          )
+        }
+
+        if (
+          resultadoCarteira.status ===
+          'fulfilled'
+        ) {
+          setCarteira(
+            resultadoCarteira.value
+          )
+        } else {
+          console.warn(
+            'Carteira:',
+            resultadoCarteira
+              .reason?.message
+          )
+        }
+
+        if (
+          resultadoOrdens.status ===
+          'fulfilled'
+        ) {
+          setOrdens(
+            resultadoOrdens.value
+          )
+        } else {
+          console.warn(
+            'Ordens:',
+            resultadoOrdens
+              .reason?.message
+          )
+        }
+
+        if (
+          resultadoExtrato.status ===
+          'fulfilled'
+        ) {
+          setExtrato(
+            resultadoExtrato.value
+          )
+        } else {
+          console.warn(
+            'Extrato:',
+            resultadoExtrato
+              .reason?.message
+          )
+        }
+      } finally {
+        setCarregando(false)
+      }
+    }, [])
 
   useEffect(() => {
     carregarDados()
   }, [carregarDados])
 
+  /*
+   * Cria uma nova ordem.
+   *
+   * A ordem NÃO é executada aqui.
+   *
+   * Depois de criada:
+   *
+   * aberta
+   *    ↓
+   * fila
+   *    ↓
+   * executor
+   */
   async function enviarOrdem(
     ativo,
     tipo,
     quantidade,
     preco
   ) {
-    const resposta = await api.enviarOrdem(
-      ativo,
-      tipo,
-      quantidade,
-      preco
-    )
+    const resposta =
+      await api.enviarOrdem(
+        ativo,
+        tipo,
+        quantidade,
+        preco
+      )
 
     await carregarDados()
 
     return resposta
   }
 
-  // NOVA FUNÇÃO
-  async function pesquisarAtivos(query) {
-    const termo = String(query || '').trim()
+  /*
+   * Executa a fila.
+   *
+   * O backend é responsável por
+   * selecionar a ordem correta
+   * e executar respeitando o FIFO.
+   */
+  async function executarFila() {
+    const resposta =
+      await api.executarFila()
+
+    await carregarDados()
+
+    return resposta
+  }
+
+  async function pesquisarAtivos(
+    query
+  ) {
+    const termo = String(
+      query || ''
+    ).trim()
 
     if (!termo) {
       return []
     }
 
     try {
-      return await api.pesquisarAtivos(termo)
+      return await api.pesquisarAtivos(
+        termo
+      )
     } catch (error) {
       console.error(
         'Erro ao pesquisar ativos:',
@@ -136,20 +222,66 @@ export function TradeProvider({ children }) {
     }
   }
 
+  /*
+   * Ordens que ainda estão abertas.
+   *
+   * Ordenadas da mais antiga
+   * para a mais recente.
+   *
+   * Isso permite visualizar
+   * a fila em ordem FIFO.
+   */
+  const ordensAbertas =
+    [...ordens]
+      .filter(
+        (ordem) =>
+          String(
+            ordem.status || ''
+          ).toLowerCase() ===
+          'aberta'
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.data) -
+          new Date(b.data)
+      )
+
+  /*
+   * Histórico de ordens executadas.
+   */
+  const ordensExecutadas =
+    [...ordens]
+      .filter(
+        (ordem) =>
+          String(
+            ordem.status || ''
+          ).toLowerCase() ===
+          'executada'
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.data) -
+          new Date(a.data)
+      )
+
   return (
     <TradeContext.Provider
       value={{
         ativos,
         carteira,
         ordens,
+        ordensAbertas,
+        ordensExecutadas,
         extrato,
         carregando,
         erro,
+
         carregarDados,
+
         enviarOrdem,
 
-        // Disponibiliza a pesquisa
-        // para qualquer página do sistema
+        executarFila,
+
         pesquisarAtivos,
 
         historicoAtivos,
@@ -162,5 +294,7 @@ export function TradeProvider({ children }) {
 }
 
 export function useTrade() {
-  return useContext(TradeContext)
+  return useContext(
+    TradeContext
+  )
 }

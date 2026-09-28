@@ -14,10 +14,30 @@ export const ROTAS = {
 export const SALDO_INICIAL = 10000
 
 export const ATIVOS_PADRAO = [
-  { ticker: 'PETR4', name: 'Petrobras', price: 38.42, variation: 1.25 },
-  { ticker: 'VALE3', name: 'Vale', price: 62.18, variation: 0.84 },
-  { ticker: 'ITUB4', name: 'Itaú Unibanco', price: 36.75, variation: 0.52 },
-  { ticker: 'BBAS3', name: 'Banco do Brasil', price: 28.9, variation: -0.31 }
+  {
+    ticker: 'PETR4',
+    name: 'Petrobras',
+    price: 38.42,
+    variation: 1.25
+  },
+  {
+    ticker: 'VALE3',
+    name: 'Vale',
+    price: 62.18,
+    variation: 0.84
+  },
+  {
+    ticker: 'ITUB4',
+    name: 'Itaú Unibanco',
+    price: 36.75,
+    variation: 0.52
+  },
+  {
+    ticker: 'BBAS3',
+    name: 'Banco do Brasil',
+    price: 28.9,
+    variation: -0.31
+  }
 ]
 
 export const API_URL = (
@@ -27,7 +47,10 @@ export const API_URL = (
 
 export function salvarSessao(token, usuario) {
   localStorage.setItem('token', token)
-  localStorage.setItem('usuarioLogado', JSON.stringify(usuario))
+  localStorage.setItem(
+    'usuarioLogado',
+    JSON.stringify(usuario)
+  )
 }
 
 export function obterToken() {
@@ -36,7 +59,9 @@ export function obterToken() {
 
 export function obterUsuarioLogado() {
   try {
-    return JSON.parse(localStorage.getItem('usuarioLogado'))
+    return JSON.parse(
+      localStorage.getItem('usuarioLogado')
+    )
   } catch {
     return null
   }
@@ -67,12 +92,14 @@ async function requisicao(
     resposta = await fetch(`${API_URL}${caminho}`, {
       method: metodo,
       headers,
-      body: corpo ? JSON.stringify(corpo) : undefined
+      body: corpo
+        ? JSON.stringify(corpo)
+        : undefined
     })
   } catch {
     throw new Error(
       'Não foi possível conectar ao servidor. ' +
-      'Se o back estava parado, aguarde alguns segundos e tente de novo.'
+        'Se o back estava parado, aguarde alguns segundos e tente de novo.'
     )
   }
 
@@ -109,7 +136,8 @@ async function requisicao(
     }
 
     const erro = new Error(
-      mensagem || `Erro ${resposta.status} ao acessar o servidor.`
+      mensagem ||
+        `Erro ${resposta.status} ao acessar o servidor.`
     )
 
     erro.status = resposta.status
@@ -126,7 +154,9 @@ async function cadastrarAtivosPadrao() {
   const criados = []
 
   for (const ativo of ATIVOS_PADRAO) {
-    const dados = { ...ativo }
+    const dados = {
+      ...ativo
+    }
 
     try {
       const resultado = await requisicao(
@@ -139,7 +169,10 @@ async function cadastrarAtivosPadrao() {
         (item) => item.stock === ativo.ticker
       )
 
-      if (encontrado && Number(encontrado.close) > 0) {
+      if (
+        encontrado &&
+        Number(encontrado.close) > 0
+      ) {
         dados.price = Number(encontrado.close)
       }
     } catch (error) {
@@ -188,55 +221,88 @@ function formatarVariacao(variacao) {
 }
 
 function adaptarAtivos(lista) {
-  return (lista || []).reduce((mapa, item) => {
-    mapa[item.ticker] = {
-      nome: item.ticker,
-      empresa: item.name || '',
-      preco: Number(item.price ?? 0),
-      variacao: formatarVariacao(item.variation)
-    }
+  return (lista || []).reduce(
+    (mapa, item) => {
+      mapa[item.ticker] = {
+        nome: item.ticker,
+        empresa: item.name || '',
+        preco: Number(item.price ?? 0),
+        variacao: formatarVariacao(
+          item.variation
+        )
+      }
 
-    return mapa
-  }, {})
+      return mapa
+    },
+    {}
+  )
 }
 
 function adaptarCarteira(portfolio) {
-  return (portfolio?.items || []).reduce((mapa, item) => {
-    if (Number(item.quantity) > 0) {
-      mapa[item.ticker] = Number(item.quantity)
-    }
+  return (portfolio?.items || []).reduce(
+    (mapa, item) => {
+      if (Number(item.quantity) > 0) {
+        mapa[item.ticker] = Number(
+          item.quantity
+        )
+      }
 
-    return mapa
-  }, {})
+      return mapa
+    },
+    {}
+  )
 }
 
 function adaptarOrdem(ordem) {
-  const quantidade = Number(ordem.quantity ?? 0)
-  const preco = Number(ordem.price ?? 0)
+  const quantidade = Number(
+    ordem.quantity ?? 0
+  )
+
+  const preco = Number(
+    ordem.price ?? 0
+  )
 
   return {
     id: ordem.id,
     usuarioId: ordem.userId,
     ativo: ordem.assetTicker,
-    tipo: TIPOS[ordem.type] || ordem.type,
+    tipo:
+      TIPOS[ordem.type] ||
+      ordem.type,
     quantidade,
+    preco,
     total: quantidade * preco,
     status: ordem.status,
-    data: ordem.createdAt
+    data: ordem.createdAt,
+    executadaEm: ordem.executedAt
   }
 }
 
 function adaptarTransacao(transacao) {
-  const quantidade = Number(transacao.quantity ?? 0)
-  const preco = Number(transacao.price ?? 0)
+  const quantidade = Number(
+    transacao.quantity ?? 0
+  )
+
+  const preco = Number(
+    transacao.price ?? 0
+  )
+
   const total = quantidade * preco
-  const tipo = TIPOS[transacao.type] || transacao.type
+
+  const tipo =
+    TIPOS[transacao.type] ||
+    transacao.type
 
   return {
     id: transacao.id,
     tipo,
-    descricao: `${transacao.assetTicker} — ${quantidade} unidade(s)`,
-    valor: transacao.type === 'BUY' ? -total : total,
+    descricao:
+      `${transacao.assetTicker} — ` +
+      `${quantidade} unidade(s)`,
+    valor:
+      transacao.type === 'BUY'
+        ? -total
+        : total,
     data: transacao.executedAt
   }
 }
@@ -246,16 +312,24 @@ export const api = {
     let resposta
 
     try {
-      resposta = await requisicao(ROTAS.login, {
-        metodo: 'POST',
-        corpo: {
-          email,
-          password: senha
+      resposta = await requisicao(
+        ROTAS.login,
+        {
+          metodo: 'POST',
+          corpo: {
+            email,
+            password: senha
+          }
         }
-      })
+      )
     } catch (error) {
-      if (error.status === 401 || error.status === 403) {
-        throw new Error('E-mail ou senha incorretos.')
+      if (
+        error.status === 401 ||
+        error.status === 403
+      ) {
+        throw new Error(
+          'E-mail ou senha incorretos.'
+        )
       }
 
       throw error
@@ -269,12 +343,17 @@ export const api = {
       )
     }
 
-    let usuario = { email }
+    let usuario = {
+      email
+    }
 
     try {
-      const perfil = await requisicao(ROTAS.perfil, {
-        token
-      })
+      const perfil = await requisicao(
+        ROTAS.perfil,
+        {
+          token
+        }
+      )
 
       usuario = {
         id: perfil.id,
@@ -282,7 +361,9 @@ export const api = {
         email: perfil.email
       }
     } catch {
-      usuario = { email }
+      usuario = {
+        email
+      }
     }
 
     return {
@@ -291,29 +372,44 @@ export const api = {
     }
   },
 
-  cadastrar(nome, email, documento, senha) {
-    return requisicao(ROTAS.cadastro, {
-      metodo: 'POST',
-      corpo: {
-        name: nome,
-        email,
-        document: documento,
-        password: senha
+  cadastrar(
+    nome,
+    email,
+    documento,
+    senha
+  ) {
+    return requisicao(
+      ROTAS.cadastro,
+      {
+        metodo: 'POST',
+        corpo: {
+          name: nome,
+          email,
+          document: documento,
+          password: senha
+        }
       }
-    })
+    )
   },
 
   async listarAtivos() {
-    const lista = await requisicao(ROTAS.ativos)
+    const lista = await requisicao(
+      ROTAS.ativos
+    )
 
-    if (Array.isArray(lista) && lista.length > 0) {
+    if (
+      Array.isArray(lista) &&
+      lista.length > 0
+    ) {
       return adaptarAtivos(lista)
     }
 
     if (!cadastroDeAtivos) {
-      cadastroDeAtivos = cadastrarAtivosPadrao().finally(() => {
-        cadastroDeAtivos = null
-      })
+      cadastroDeAtivos =
+        cadastrarAtivosPadrao()
+          .finally(() => {
+            cadastroDeAtivos = null
+          })
     }
 
     await cadastroDeAtivos
@@ -323,19 +419,21 @@ export const api = {
     )
   },
 
-  // NOVA FUNÇÃO
-  // Pesquisa qualquer ativo usando:
-  // GET /api/assets/search?query=...
   async pesquisarAtivos(query) {
-    const termo = String(query || '').trim()
+    const termo = String(
+      query || ''
+    ).trim()
 
     if (!termo) {
       return []
     }
 
-    const resultado = await requisicao(
-      `${ROTAS.buscarAtivo}?query=${encodeURIComponent(termo)}`
-    )
+    const resultado =
+      await requisicao(
+        `${ROTAS.buscarAtivo}?query=${encodeURIComponent(
+          termo
+        )}`
+      )
 
     if (!Array.isArray(resultado)) {
       return []
@@ -345,7 +443,9 @@ export const api = {
       stock: item.stock || '',
       name: item.name || '',
       sector: item.sector || '',
-      close: Number(item.close ?? 0),
+      close: Number(
+        item.close ?? 0
+      ),
       logo: item.logo || ''
     }))
   },
@@ -353,17 +453,23 @@ export const api = {
   async buscarCarteira() {
     try {
       return adaptarCarteira(
-        await requisicao(ROTAS.carteira)
+        await requisicao(
+          ROTAS.carteira
+        )
       )
     } catch (error) {
       if (error.status !== 400) {
         throw error
       }
 
-      let usuarioId = obterUsuarioLogado()?.id
+      let usuarioId =
+        obterUsuarioLogado()?.id
 
       if (!usuarioId) {
-        const perfil = await requisicao(ROTAS.perfil)
+        const perfil =
+          await requisicao(
+            ROTAS.perfil
+          )
 
         usuarioId = perfil.id
 
@@ -377,34 +483,49 @@ export const api = {
         )
       }
 
-      const chave = `carteiraCriada_${usuarioId}`
+      const chave =
+        `carteiraCriada_${usuarioId}`
 
-      if (localStorage.getItem(chave)) {
+      if (
+        localStorage.getItem(chave)
+      ) {
         throw error
       }
 
-      localStorage.setItem(chave, 'sim')
+      localStorage.setItem(
+        chave,
+        'sim'
+      )
 
-      await requisicao(ROTAS.criarCarteira, {
-        metodo: 'POST',
-        corpo: {
-          userId: usuarioId,
-          availableBalance: SALDO_INICIAL
+      await requisicao(
+        ROTAS.criarCarteira,
+        {
+          metodo: 'POST',
+          corpo: {
+            userId: usuarioId,
+            availableBalance:
+              SALDO_INICIAL
+          }
         }
-      })
+      )
 
       return adaptarCarteira(
-        await requisicao(ROTAS.carteira)
+        await requisicao(
+          ROTAS.carteira
+        )
       )
     }
   },
 
   async listarOrdens() {
     const ordens = (
-      (await requisicao(ROTAS.ordens)) || []
+      (await requisicao(
+        ROTAS.ordens
+      )) || []
     ).map(adaptarOrdem)
 
-    const usuarioId = obterUsuarioLogado()?.id
+    const usuarioId =
+      obterUsuarioLogado()?.id
 
     if (!usuarioId) {
       return ordens
@@ -419,37 +540,58 @@ export const api = {
 
   async listarExtrato() {
     return (
-      (await requisicao(ROTAS.extrato)) || []
+      (await requisicao(
+        ROTAS.extrato
+      )) || []
     ).map(adaptarTransacao)
   },
 
+  /*
+   * CRIA A ORDEM.
+   *
+   * IMPORTANTE:
+   * Aqui NÃO executamos a fila.
+   *
+   * A ordem deve permanecer aberta
+   * até o executor da fila chamar
+   * /api/orders/execute-queue.
+   */
   async enviarOrdem(
     ativo,
     tipo,
     quantidade,
     preco
   ) {
-    const ordem = await requisicao(ROTAS.ordens, {
-      metodo: 'POST',
-      corpo: {
-        assetTicker: ativo,
-        type: tipo === 'Compra' ? 'BUY' : 'SELL',
-        quantity: quantidade,
-        price: preco
+    return await requisicao(
+      ROTAS.ordens,
+      {
+        metodo: 'POST',
+        corpo: {
+          assetTicker: ativo,
+          type:
+            tipo === 'Compra'
+              ? 'BUY'
+              : 'SELL',
+          quantity: quantidade,
+          price: preco
+        }
       }
-    })
+    )
+  },
 
-    try {
-      await requisicao(ROTAS.executarFila, {
+  /*
+   * EXECUTA A FILA.
+   *
+   * Esta função deve ser chamada
+   * somente quando você quiser
+   * processar as ordens abertas.
+   */
+  async executarFila() {
+    return await requisicao(
+      ROTAS.executarFila,
+      {
         metodo: 'POST'
-      })
-    } catch (error) {
-      console.warn(
-        'Não foi possível executar a fila de ordens:',
-        error.message
-      )
-    }
-
-    return ordem
+      }
+    )
   }
 }
