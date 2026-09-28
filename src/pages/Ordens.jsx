@@ -14,9 +14,13 @@ function Ordens() {
       alert('Erro ao executar a fila: ' + error.message)
     }
   }
-  const historicoOrdens = ordens.filter(
-    (ordem) => String(ordem.status || '').toUpperCase() !== 'OPEN'
-  )
+  const historicoOrdens = ordens
+    .filter((ordem) => String(ordem.status || '').toUpperCase() !== 'OPEN')
+    .sort((a, b) => {
+      const dataA = new Date(a.executadaEm || a.data)
+      const dataB = new Date(b.executadaEm || b.data)
+      return dataB - dataA
+    })
 
   return (
     <div className="orders-page">
