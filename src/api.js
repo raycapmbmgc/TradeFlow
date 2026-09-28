@@ -47,8 +47,14 @@ export function encerrarSessao() {
   localStorage.removeItem('usuarioLogado')
 }
 
-async function requisicao(caminho, { metodo = 'GET', corpo, token } = {}) {
-  const headers = { 'Content-Type': 'application/json' }
+async function requisicao(
+  caminho,
+  { metodo = 'GET', corpo, token } = {}
+) {
+  const headers = {
+    'Content-Type': 'application/json'
+  }
+
   const tokenUsado = token || obterToken()
 
   if (tokenUsado) {
@@ -91,15 +97,23 @@ async function requisicao(caminho, { metodo = 'GET', corpo, token } = {}) {
     if (typeof dados === 'string') {
       mensagem = dados
     } else if (dados) {
-      mensagem = dados.erro || dados.mensagem || dados.message || dados.error
+      mensagem =
+        dados.erro ||
+        dados.mensagem ||
+        dados.message ||
+        dados.error
     }
 
     if (resposta.status === 403 && !mensagem) {
       mensagem = 'Acesso negado pelo servidor.'
     }
 
-    const erro = new Error(mensagem || `Erro ${resposta.status} ao acessar o servidor.`)
+    const erro = new Error(
+      mensagem || `Erro ${resposta.status} ao acessar o servidor.`
+    )
+
     erro.status = resposta.status
+
     throw erro
   }
 
@@ -116,26 +130,44 @@ async function cadastrarAtivosPadrao() {
 
     try {
       const resultado = await requisicao(
-        `${ROTAS.buscarAtivo}?query=${encodeURIComponent(ativo.ticker)}`
+        `${ROTAS.buscarAtivo}?query=${encodeURIComponent(
+          ativo.ticker
+        )}`
       )
-      const encontrado = (resultado || []).find((item) => item.stock === ativo.ticker)
+
+      const encontrado = (resultado || []).find(
+        (item) => item.stock === ativo.ticker
+      )
 
       if (encontrado && Number(encontrado.close) > 0) {
         dados.price = Number(encontrado.close)
       }
     } catch (error) {
-      console.warn(`Brapi indisponível para ${ativo.ticker}:`, error.message)
+      console.warn(
+        `Brapi indisponível para ${ativo.ticker}:`,
+        error.message
+      )
     }
 
     try {
-      criados.push(await requisicao(ROTAS.ativos, { metodo: 'POST', corpo: dados }))
+      criados.push(
+        await requisicao(ROTAS.ativos, {
+          metodo: 'POST',
+          corpo: dados
+        })
+      )
     } catch (error) {
-      console.warn(`Não foi possível cadastrar ${ativo.ticker}:`, error.message)
+      console.warn(
+        `Não foi possível cadastrar ${ativo.ticker}:`,
+        error.message
+      )
     }
   }
 
   if (criados.length === 0) {
-    throw new Error('Nenhum ativo cadastrado no back e não foi possível cadastrar os ativos padrão.')
+    throw new Error(
+      'Nenhum ativo cadastrado no back e não foi possível cadastrar os ativos padrão.'
+    )
   }
 
   return criados
@@ -149,7 +181,10 @@ const TIPOS = {
 function formatarVariacao(variacao) {
   const numero = Number(variacao ?? 0)
   const sinal = numero >= 0 ? '+' : ''
-  return `${sinal}${numero.toFixed(2).replace('.', ',')}%`
+
+  return `${sinal}${numero
+    .toFixed(2)
+    .replace('.', ',')}%`
 }
 
 function adaptarAtivos(lista) {
@@ -160,6 +195,7 @@ function adaptarAtivos(lista) {
       preco: Number(item.price ?? 0),
       variacao: formatarVariacao(item.variation)
     }
+
     return mapa
   }, {})
 }
@@ -169,6 +205,7 @@ function adaptarCarteira(portfolio) {
     if (Number(item.quantity) > 0) {
       mapa[item.ticker] = Number(item.quantity)
     }
+
     return mapa
   }, {})
 }
@@ -211,37 +248,58 @@ export const api = {
     try {
       resposta = await requisicao(ROTAS.login, {
         metodo: 'POST',
-        corpo: { email, password: senha }
+        corpo: {
+          email,
+          password: senha
+        }
       })
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         throw new Error('E-mail ou senha incorretos.')
       }
+
       throw error
     }
 
     const token = resposta?.token
 
     if (!token) {
-      throw new Error('O servidor não devolveu o token de acesso.')
+      throw new Error(
+        'O servidor não devolveu o token de acesso.'
+      )
     }
 
     let usuario = { email }
 
     try {
-      const perfil = await requisicao(ROTAS.perfil, { token })
-      usuario = { id: perfil.id, nome: perfil.name, email: perfil.email }
+      const perfil = await requisicao(ROTAS.perfil, {
+        token
+      })
+
+      usuario = {
+        id: perfil.id,
+        nome: perfil.name,
+        email: perfil.email
+      }
     } catch {
       usuario = { email }
     }
 
-    return { token, usuario }
+    return {
+      token,
+      usuario
+    }
   },
 
   cadastrar(nome, email, documento, senha) {
     return requisicao(ROTAS.cadastro, {
       metodo: 'POST',
-      corpo: { name: nome, email, document: documento, password: senha }
+      corpo: {
+        name: nome,
+        email,
+        document: documento,
+        password: senha
+      }
     })
   },
 
@@ -260,12 +318,43 @@ export const api = {
 
     await cadastroDeAtivos
 
-    return adaptarAtivos(await requisicao(ROTAS.ativos))
+    return adaptarAtivos(
+      await requisicao(ROTAS.ativos)
+    )
+  },
+
+  // NOVA FUNÇÃO
+  // Pesquisa qualquer ativo usando:
+  // GET /api/assets/search?query=...
+  async pesquisarAtivos(query) {
+    const termo = String(query || '').trim()
+
+    if (!termo) {
+      return []
+    }
+
+    const resultado = await requisicao(
+      `${ROTAS.buscarAtivo}?query=${encodeURIComponent(termo)}`
+    )
+
+    if (!Array.isArray(resultado)) {
+      return []
+    }
+
+    return resultado.map((item) => ({
+      stock: item.stock || '',
+      name: item.name || '',
+      sector: item.sector || '',
+      close: Number(item.close ?? 0),
+      logo: item.logo || ''
+    }))
   },
 
   async buscarCarteira() {
     try {
-      return adaptarCarteira(await requisicao(ROTAS.carteira))
+      return adaptarCarteira(
+        await requisicao(ROTAS.carteira)
+      )
     } catch (error) {
       if (error.status !== 400) {
         throw error
@@ -275,10 +364,16 @@ export const api = {
 
       if (!usuarioId) {
         const perfil = await requisicao(ROTAS.perfil)
+
         usuarioId = perfil.id
+
         localStorage.setItem(
           'usuarioLogado',
-          JSON.stringify({ id: perfil.id, nome: perfil.name, email: perfil.email })
+          JSON.stringify({
+            id: perfil.id,
+            nome: perfil.name,
+            email: perfil.email
+          })
         )
       }
 
@@ -292,29 +387,48 @@ export const api = {
 
       await requisicao(ROTAS.criarCarteira, {
         metodo: 'POST',
-        corpo: { userId: usuarioId, availableBalance: SALDO_INICIAL }
+        corpo: {
+          userId: usuarioId,
+          availableBalance: SALDO_INICIAL
+        }
       })
 
-      return adaptarCarteira(await requisicao(ROTAS.carteira))
+      return adaptarCarteira(
+        await requisicao(ROTAS.carteira)
+      )
     }
   },
 
   async listarOrdens() {
-    const ordens = ((await requisicao(ROTAS.ordens)) || []).map(adaptarOrdem)
+    const ordens = (
+      (await requisicao(ROTAS.ordens)) || []
+    ).map(adaptarOrdem)
+
     const usuarioId = obterUsuarioLogado()?.id
 
     if (!usuarioId) {
       return ordens
     }
 
-    return ordens.filter((ordem) => !ordem.usuarioId || ordem.usuarioId === usuarioId)
+    return ordens.filter(
+      (ordem) =>
+        !ordem.usuarioId ||
+        ordem.usuarioId === usuarioId
+    )
   },
 
   async listarExtrato() {
-    return ((await requisicao(ROTAS.extrato)) || []).map(adaptarTransacao)
+    return (
+      (await requisicao(ROTAS.extrato)) || []
+    ).map(adaptarTransacao)
   },
 
-  async enviarOrdem(ativo, tipo, quantidade, preco) {
+  async enviarOrdem(
+    ativo,
+    tipo,
+    quantidade,
+    preco
+  ) {
     const ordem = await requisicao(ROTAS.ordens, {
       metodo: 'POST',
       corpo: {
@@ -326,9 +440,14 @@ export const api = {
     })
 
     try {
-      await requisicao(ROTAS.executarFila, { metodo: 'POST' })
+      await requisicao(ROTAS.executarFila, {
+        metodo: 'POST'
+      })
     } catch (error) {
-      console.warn('Não foi possível executar a fila de ordens:', error.message)
+      console.warn(
+        'Não foi possível executar a fila de ordens:',
+        error.message
+      )
     }
 
     return ordem

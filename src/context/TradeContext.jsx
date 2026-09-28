@@ -19,7 +19,8 @@ export function TradeProvider({ children }) {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
-  const [historicoAtivos, setHistoricoAtivos] = useState(['PETR4'])
+  const [historicoAtivos, setHistoricoAtivos] =
+    useState(['PETR4'])
 
   const carregarDados = useCallback(async () => {
     if (!obterToken()) {
@@ -43,35 +44,51 @@ export function TradeProvider({ children }) {
 
     if (resultadoAtivos.status === 'fulfilled') {
       const listaAtivos = resultadoAtivos.value
-      const primeiroAtivo = Object.keys(listaAtivos)[0]
+
+      const primeiroAtivo =
+        Object.keys(listaAtivos)[0]
 
       setAtivos(listaAtivos)
 
       if (primeiroAtivo) {
         setHistoricoAtivos((atual) =>
-          listaAtivos[atual[0]] ? atual : [primeiroAtivo]
+          listaAtivos[atual[0]]
+            ? atual
+            : [primeiroAtivo]
         )
       }
     } else {
-      setErro(resultadoAtivos.reason.message)
+      setErro(
+        resultadoAtivos.reason?.message ||
+          'Não foi possível carregar os ativos.'
+      )
     }
 
     if (resultadoCarteira.status === 'fulfilled') {
       setCarteira(resultadoCarteira.value)
     } else {
-      console.warn('Carteira:', resultadoCarteira.reason.message)
+      console.warn(
+        'Carteira:',
+        resultadoCarteira.reason?.message
+      )
     }
 
     if (resultadoOrdens.status === 'fulfilled') {
       setOrdens(resultadoOrdens.value)
     } else {
-      console.warn('Ordens:', resultadoOrdens.reason.message)
+      console.warn(
+        'Ordens:',
+        resultadoOrdens.reason?.message
+      )
     }
 
     if (resultadoExtrato.status === 'fulfilled') {
       setExtrato(resultadoExtrato.value)
     } else {
-      console.warn('Extrato:', resultadoExtrato.reason.message)
+      console.warn(
+        'Extrato:',
+        resultadoExtrato.reason?.message
+      )
     }
 
     setCarregando(false)
@@ -81,10 +98,42 @@ export function TradeProvider({ children }) {
     carregarDados()
   }, [carregarDados])
 
-  async function enviarOrdem(ativo, tipo, quantidade, preco) {
-    const resposta = await api.enviarOrdem(ativo, tipo, quantidade, preco)
+  async function enviarOrdem(
+    ativo,
+    tipo,
+    quantidade,
+    preco
+  ) {
+    const resposta = await api.enviarOrdem(
+      ativo,
+      tipo,
+      quantidade,
+      preco
+    )
+
     await carregarDados()
+
     return resposta
+  }
+
+  // NOVA FUNÇÃO
+  async function pesquisarAtivos(query) {
+    const termo = String(query || '').trim()
+
+    if (!termo) {
+      return []
+    }
+
+    try {
+      return await api.pesquisarAtivos(termo)
+    } catch (error) {
+      console.error(
+        'Erro ao pesquisar ativos:',
+        error
+      )
+
+      throw error
+    }
   }
 
   return (
@@ -98,6 +147,11 @@ export function TradeProvider({ children }) {
         erro,
         carregarDados,
         enviarOrdem,
+
+        // Disponibiliza a pesquisa
+        // para qualquer página do sistema
+        pesquisarAtivos,
+
         historicoAtivos,
         setHistoricoAtivos
       }}
