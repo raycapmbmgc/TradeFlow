@@ -89,6 +89,17 @@
 
   color: #06100b;
 }
+.trade-button{
+    min-width: 110px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
 
 .trade-button:hover,
 .portfolio-button:hover {
